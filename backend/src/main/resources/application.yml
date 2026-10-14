@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: effex-med
+  datasource:
+    # Banco em arquivo para que os dados da demonstração sobrevivam a reinicializações.
+    url: ${DATABASE_URL:jdbc:h2:file:./data/effexmed}
+    username: ${DATABASE_USERNAME:sa}
+    password: ${DATABASE_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate.jdbc.time_zone: UTC
+
+server:
+  port: ${PORT:8080}
+
+app:
+  # Fuso usado para calcular prazos das conversas e a janela de notificações do médico.
+  timezone: America/Sao_Paulo
+  jwt:
+    secret: ${JWT_SECRET:effex-med-demo-secret-troque-em-producao-0123456789}
+    ttl: 12h
+  # Popula médicos, pacientes e conversas de exemplo quando o banco está vazio.
+  demo-data: ${DEMO_DATA:true}
+  # Origens liberadas para chamar a API diretamente (o proxy do Vite já evita CORS em desenvolvimento).
+  cors-allowed-origins:
+    - http://localhost:*
+    - http://127.0.0.1:*

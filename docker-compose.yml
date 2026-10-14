@@ -1,0 +1,15 @@
+services:
+  effex-med:
+    build: .
+    image: effex-med-mvp
+    ports:
+      - "8080:8080"
+    environment:
+      # Troque por um segredo próprio (mínimo de 32 caracteres) fora do ambiente de demonstração.
+      JWT_SECRET: effex-med-demo-secret-troque-em-producao-0123456789
+      DEMO_DATA: "true"
+    volumes:
+      - effex-med-data:/app/data
+
+volumes:
+  effex-med-data:
