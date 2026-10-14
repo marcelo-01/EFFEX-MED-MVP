@@ -30,12 +30,20 @@ export function browserNotificationsSupported() {
 }
 
 export function browserNotificationPermission(): NotificationPermission | 'unsupported' {
-  return browserNotificationsSupported() ? Notification.permission : 'unsupported';
+  try {
+    return browserNotificationsSupported() ? Notification.permission : 'unsupported';
+  } catch {
+    return 'unsupported';
+  }
 }
 
-export async function requestBrowserNotifications() {
-  if (!browserNotificationsSupported()) return 'unsupported' as const;
-  return Notification.requestPermission();
+export async function requestBrowserNotifications(): Promise<NotificationPermission | 'unsupported'> {
+  if (!browserNotificationsSupported()) return 'unsupported';
+  try {
+    return await Notification.requestPermission();
+  } catch {
+    return 'denied';
+  }
 }
 
 export function showBrowserNotification(title: string, body: string, onClick?: () => void) {

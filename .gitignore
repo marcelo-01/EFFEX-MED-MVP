@@ -6,6 +6,7 @@ backend/data/
 # Frontend
 frontend/node_modules/
 frontend/dist/
+frontend/dist-standalone/
 
 # IDE / OS
 .idea/

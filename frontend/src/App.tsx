@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter, Navigate, Route, Routes } from 'react-router-dom';
 import type { Role } from './api/types';
 import { AuthProvider, homePathFor, useAuth } from './auth/AuthContext';
 import { ChatScreen } from './chat/ChatScreen';
+import { STANDALONE } from './config';
 import { LogoMark } from './components/Logo';
 import { ToastProvider } from './components/Toast';
 import { RealtimeProvider } from './realtime/RealtimeContext';
@@ -13,9 +14,12 @@ import { PatientsPage } from './pages/doctor/PatientsPage';
 import { SettingsPage } from './pages/doctor/SettingsPage';
 import { PatientLayout } from './pages/patient/PatientLayout';
 
+// A versão standalone roda dentro de outra página (ex.: Claude Artifacts), sem controlar a URL.
+const Router = STANDALONE ? MemoryRouter : BrowserRouter;
+
 export function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <ToastProvider>
         <AuthProvider>
           <Routes>
@@ -37,7 +41,7 @@ export function App() {
           </Routes>
         </AuthProvider>
       </ToastProvider>
-    </BrowserRouter>
+    </Router>
   );
 }
 

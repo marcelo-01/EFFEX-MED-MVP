@@ -4,6 +4,8 @@ import { ChevronRight, Eye, EyeOff, LoaderCircle, Stethoscope, UserRound } from 
 import type { ApiError } from '../api/http';
 import { homePathFor, useAuth } from '../auth/AuthContext';
 import { Avatar } from '../components/Avatar';
+import { useToast } from '../components/Toast';
+import { STANDALONE } from '../config';
 import { AuthLayout } from './AuthLayout';
 
 /** Contas criadas pelo DemoDataLoader do backend (senha: demo123). */
@@ -19,6 +21,15 @@ const DEMO_PASSWORD = 'demo123';
 export function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
+  const [resetStep, setResetStep] = useState<'idle' | 'confirm'>('idle');
+
+  const resetDemo = async () => {
+    const { resetDemo: reset } = await import('../standalone/server');
+    await reset();
+    setResetStep('idle');
+    toast({ title: 'Dados de demonstração restaurados', tone: 'success' });
+  };
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -140,6 +151,29 @@ export function LoginPage() {
             </button>
           ))}
         </div>
+        {STANDALONE && (
+          <div className="demo-card__footer">
+            <p>
+              Versão de demonstração com dados fictícios, salvos apenas neste navegador. Para conversar como médico e
+              paciente ao mesmo tempo, abra esta página em outra aba e entre com a outra conta.
+            </p>
+            {resetStep === 'idle' ? (
+              <button type="button" className="btn btn--ghost btn--small" onClick={() => setResetStep('confirm')}>
+                Restaurar dados de demonstração
+              </button>
+            ) : (
+              <div className="demo-card__confirm">
+                <span>Apagar as alterações e voltar ao estado inicial?</span>
+                <button type="button" className="btn btn--ghost btn--small" onClick={() => setResetStep('idle')}>
+                  Cancelar
+                </button>
+                <button type="button" className="btn btn--danger btn--small" onClick={() => void resetDemo()}>
+                  Restaurar
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </AuthLayout>
   );

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { Info, LoaderCircle, Stethoscope, UserRound } from 'lucide-react';
 import type { ApiError } from '../api/http';
+import { STANDALONE } from '../config';
 import { homePathFor, useAuth } from '../auth/AuthContext';
 import { AuthLayout } from './AuthLayout';
 
@@ -114,6 +115,9 @@ function RegisterForm({ kind }: { kind: Kind }) {
             />
           </Field>
           {error && Object.keys(errors).length === 0 && <div className="form-error">{error}</div>}
+          {STANDALONE && (
+            <span className="field__hint">Versão de demonstração: os dados ficam só neste navegador. Não use uma senha real.</span>
+          )}
           <button type="submit" className="btn btn--primary btn--block btn--lg" disabled={submitting}>
             {submitting ? <LoaderCircle size={20} className="spin" /> : 'Criar conta'}
           </button>

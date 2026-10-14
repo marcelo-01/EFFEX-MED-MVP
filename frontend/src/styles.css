@@ -592,8 +592,8 @@ textarea::placeholder {
 
 .toast-stack {
   position: fixed;
-  top: 18px;
-  right: 18px;
+  top: calc(18px + env(safe-area-inset-top, 0px));
+  right: calc(18px + env(safe-area-inset-right, 0px));
   z-index: 100;
   display: flex;
   flex-direction: column;
@@ -1113,13 +1113,38 @@ textarea::placeholder {
   color: var(--primary-600);
 }
 
+.demo-card__footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.demo-card__footer .btn--ghost {
+  margin-left: -12px;
+  color: var(--primary-700);
+}
+
+.demo-card__confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+}
+
 /* ==========================================================================
    Estrutura do app (menu lateral do médico)
    ========================================================================== */
 
 .app-shell {
   display: flex;
-  height: 100dvh;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -2457,7 +2482,7 @@ textarea::placeholder {
 .save-bar {
   position: fixed;
   left: 50%;
-  bottom: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
   z-index: 50;
   display: flex;
   align-items: center;

@@ -1,4 +1,11 @@
+import { STANDALONE } from '../config';
+
 const TOKEN_KEY = 'effexmed.token';
+
+// No modo standalone a sessão fica por aba, para permitir médico e paciente logados em abas diferentes.
+function tokenStorage(): Storage {
+  return STANDALONE ? sessionStorage : localStorage;
+}
 
 export class ApiError extends Error {
   readonly status: number;
@@ -11,20 +18,24 @@ export class ApiError extends Error {
   }
 }
 
+// Cópia em memória para quando o navegador bloqueia o armazenamento (ex.: aba anônima).
+let memoryToken: string | null = null;
+
 export function getToken(): string | null {
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    return tokenStorage().getItem(TOKEN_KEY) ?? memoryToken;
   } catch {
-    return null;
+    return memoryToken;
   }
 }
 
 export function setToken(token: string | null) {
+  memoryToken = token;
   try {
-    if (token) localStorage.setItem(TOKEN_KEY, token);
-    else localStorage.removeItem(TOKEN_KEY);
+    if (token) tokenStorage().setItem(TOKEN_KEY, token);
+    else tokenStorage().removeItem(TOKEN_KEY);
   } catch {
-    /* armazenamento indisponível (ex.: aba anônima) */
+    /* armazenamento indisponível: fica só a cópia em memória */
   }
 }
 
@@ -39,6 +50,16 @@ type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
   const token = getToken();
+  if (STANDALONE) {
+    const { handleRequest } = await import('../standalone/server');
+    try {
+      return await handleRequest<T>(method, path, body, token);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401 && token) unauthorizedHandler?.();
+      throw error;
+    }
+  }
+
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;

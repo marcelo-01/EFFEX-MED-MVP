@@ -47,6 +47,19 @@ cd ../backend && ./mvnw package               # o jar já inclui o frontend
 java -jar target/effex-med-api-0.1.0.jar      # http://localhost:8080
 ```
 
+### Opção 4 — Versão web sem backend (página estática)
+
+```bash
+cd frontend && npm install && npm run build:standalone
+# gera frontend/dist-standalone/effex-med.html (HTML único, ~390 KB)
+```
+
+Esse modo roda o mesmo frontend com um backend simulado no próprio navegador (`frontend/src/standalone/server.ts`),
+que reproduz a API e as regras de negócio. Os dados ficam no `localStorage` de quem abre a página e as abas abertas
+no mesmo navegador conversam em tempo real (BroadcastChannel), então dá para abrir o médico numa aba e o paciente em
+outra. É a versão publicada no Claude Artifacts. Ela não compartilha dados entre aparelhos diferentes; para isso é
+preciso rodar o backend Spring Boot.
+
 ## Contas de demonstração
 
 Criadas automaticamente quando o banco está vazio (`app.demo-data=true`). Senha de todas: **`demo123`**.

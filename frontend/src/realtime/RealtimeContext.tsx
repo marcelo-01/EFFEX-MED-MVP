@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Client } from '@stomp/stompjs';
 import type { ChatEvent } from '../api/types';
+import { STANDALONE } from '../config';
 
 type Listener = (event: ChatEvent) => void;
 
@@ -30,6 +31,22 @@ export function RealtimeProvider({ token, children }: { token: string; children:
   const clientRef = useRef<Client | null>(null);
 
   useEffect(() => {
+    if (STANDALONE) {
+      // Backend simulado: os eventos chegam pelo barramento local (BroadcastChannel entre abas).
+      let disconnect = () => {};
+      let cancelled = false;
+      void import('../standalone/server').then(({ connect }) => {
+        if (cancelled) return;
+        disconnect = connect(token, (event) => listeners.current.forEach((listener) => listener(event)));
+        setConnected(true);
+        setConnectionCount((count) => count + 1);
+      });
+      return () => {
+        cancelled = true;
+        disconnect();
+      };
+    }
+
     const client = new Client({
       brokerURL: brokerUrl(),
       connectHeaders: { Authorization: `Bearer ${token}` },
@@ -63,11 +80,15 @@ export function RealtimeProvider({ token, children }: { token: string; children:
   }, []);
 
   const sendTyping = useCallback((conversationId: number) => {
+    if (STANDALONE) {
+      void import('../standalone/server').then(({ typing }) => typing(token, conversationId)).catch(() => undefined);
+      return;
+    }
     const client = clientRef.current;
     if (client?.connected) {
       client.publish({ destination: `/app/conversations/${conversationId}/typing`, body: '' });
     }
-  }, []);
+  }, [token]);
 
   const value = useMemo(
     () => ({ connected, connectionCount, subscribe, sendTyping }),
