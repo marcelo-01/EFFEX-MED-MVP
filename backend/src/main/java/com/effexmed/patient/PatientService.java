@@ -172,6 +172,7 @@ public class PatientService {
                         conversation.getId(),
                         conversation.patientDisplayName(),
                         conversation.getPatientEmail(),
+                        conversation.isPatientRegistered() ? conversation.getPatient().photoUrl() : null,
                         conversation.isPatientRegistered(),
                         conversation.getExpiresOn(),
                         conversation.daysRemaining(today),

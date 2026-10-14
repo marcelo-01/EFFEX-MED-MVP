@@ -21,7 +21,7 @@ public record ConversationDto(
         long unreadCount,
         DoctorAvailability doctorAvailability) {
 
-    public record Participant(Long id, String name, String email, String detail) {
+    public record Participant(Long id, String name, String email, String detail, String photoUrl) {
     }
 
     /** Janela de atendimento do médico, exibida ao paciente no chat. */

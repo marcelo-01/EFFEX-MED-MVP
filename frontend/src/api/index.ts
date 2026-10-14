@@ -1,5 +1,15 @@
 import { request } from './http';
-import type { AuthResponse, Conversation, Extension, Message, Patient, Settings, SignUpConsents, User } from './types';
+import type {
+  AuthResponse,
+  Conversation,
+  Extension,
+  Message,
+  Patient,
+  Profile,
+  Settings,
+  SignUpConsents,
+  User,
+} from './types';
 
 export const authApi = {
   login: (email: string, password: string) =>
@@ -41,4 +51,18 @@ export const patientsApi = {
 export const settingsApi = {
   get: () => request<Settings>('GET', '/doctor/settings'),
   update: (data: Settings) => request<Settings>('PUT', '/doctor/settings', data),
+};
+
+export const profileApi = {
+  get: () => request<Profile>('GET', '/profile'),
+  update: (data: { name: string; crm?: string; specialty?: string; marketingOptIn?: boolean }) =>
+    request<Profile>('PUT', '/profile', data),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<void>('PUT', '/profile/password', { currentPassword, newPassword }),
+  uploadPhoto: (photo: Blob) => {
+    const form = new FormData();
+    form.append('file', photo, 'foto.jpg');
+    return request<Profile>('PUT', '/profile/photo', form);
+  },
+  removePhoto: () => request<Profile>('DELETE', '/profile/photo'),
 };

@@ -126,7 +126,7 @@ export function ChatWindow({ conversation, backPath }: ChatWindowProps) {
         <Link to={backPath} className="icon-button chat-header__back" aria-label="Voltar para as conversas">
           <ArrowLeft size={22} />
         </Link>
-        <Avatar name={counterpart.name} size={42} />
+        <Avatar name={counterpart.name} size={42} photoUrl={counterpart.photoUrl} />
         <div className="chat-header__info">
           <h2>{counterpart.name}</h2>
           <p>{typing ? <span className="typing-text">digitando…</span> : counterpart.detail}</p>

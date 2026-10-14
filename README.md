@@ -10,6 +10,7 @@ enviar mensagens (até a data do retorno).
 | Chat com os pacientes (estilo WhatsApp) | Chat com os médicos que o cadastraram |
 | **Pacientes**: cadastro por e-mail, prazo do chat, extensão de prazo | Pedido de extensão quando o prazo termina |
 | **Ajustes**: horário de notificações e mensagem padrão | |
+| **Perfil**: foto, nome, CRM e especialidade, senha e privacidade | **Perfil**: foto, nome, senha e privacidade |
 
 ## Como rodar
 
@@ -105,6 +106,12 @@ Na tela de login há atalhos para entrar com um clique.
 - **Mensagem padrão**: enviada automaticamente (marcada como *Mensagem automática*) quando o **paciente inicia** a
   conversa, ou seja, na primeira mensagem dele. Se o médico iniciou a conversa, ela não é enviada.
 - **Remoção de paciente**: permitida apenas enquanto não houver mensagens trocadas (para não perder histórico).
+- **Perfil e foto**: médico e paciente editam nome (o médico também CRM e especialidade), trocam a senha (exige a senha
+  atual) e enviam uma foto. O navegador recorta a imagem em quadrado e reduz para 320 px antes de enviar; o backend
+  aceita JPG, PNG ou WebP de até 2 MB, conferindo o tipo pelos bytes do arquivo. A foto é servida por
+  `/api/users/{id}/photo` apenas para o próprio usuário e para quem tem vínculo com ele (médico ⇄ paciente). O
+  e-mail não é editável porque é ele que liga o paciente aos médicos que o cadastraram. Na seção Privacidade o usuário
+  vê os aceites do cadastro e pode ligar ou desligar o recebimento de novidades (a revogação fica registrada).
 - **LGPD no cadastro**: caixas de aceite desmarcadas por padrão para Termos de Uso e Política de Privacidade (com os
   textos em modal), além de um aceite específico por perfil: o paciente autoriza o tratamento de **dados de saúde** em
   destaque (art. 11, I) e o médico declara CRM ativo e dever de sigilo. Receber novidades por e-mail é opcional. Os
@@ -127,6 +134,7 @@ EFFEX-MED-MVP/
 | `auth` | Cadastro de médico/paciente, login e emissão do JWT (HS256 via `spring-security-oauth2-jose`) |
 | `user` | Entidade `User` (papel `DOCTOR` ou `PATIENT`) e `UserConsent` (aceites da LGPD) |
 | `settings` | `DoctorSettings`: janela de notificações e mensagem padrão |
+| `profile` | Perfil do usuário logado, troca de senha e foto (`UserPhoto`, tabela `user_photos`) |
 | `patient` | Painel do médico: cadastro de pacientes, edição de prazo, extensões (`/api/doctor/patients`) |
 | `chat` | `Conversation` (vínculo médico ⇄ e-mail do paciente), `Message`, `ConversationExtension` e as regras do chat |
 | `realtime` | Eventos em tempo real (enviados **após o commit** via `@TransactionalEventListener`) e indicador "digitando" |
@@ -154,6 +162,10 @@ Decisões principais:
 | POST | `/api/auth/login` | Login (retorna JWT) |
 | GET | `/api/auth/me` | Usuário autenticado |
 | GET/PUT | `/api/doctor/settings` | Configurações do médico |
+| GET/PUT | `/api/profile` | Perfil do usuário logado (nome, CRM/especialidade, novidades por e-mail) |
+| PUT | `/api/profile/password` | Troca de senha |
+| PUT/DELETE | `/api/profile/photo` | Envia (multipart `file`) ou remove a foto |
+| GET | `/api/users/{id}/photo` | Foto de perfil, só para quem tem vínculo com o usuário |
 | GET/POST | `/api/doctor/patients` | Lista / cadastra paciente (por e-mail) |
 | PATCH/DELETE | `/api/doctor/patients/{id}` | Edita nome e data de retorno / remove |
 | GET/POST | `/api/doctor/patients/{id}/extensions` | Histórico / estende o prazo |
@@ -170,7 +182,8 @@ cd backend && ./mvnw test
 ```
 
 Cobrem a janela de notificações, as regras de prazo/extensão e o fluxo completo via MockMvc (aceites da LGPD,
-vínculo por e-mail, mensagem padrão, bloqueio após o prazo, extensão, confirmação de leitura e controle de acesso).
+vínculo por e-mail, mensagem padrão, bloqueio após o prazo, extensão, confirmação de leitura, controle de acesso,
+perfil, troca de senha e acesso às fotos).
 
 > O schema é gerado pelo Hibernate (`ddl-auto: update`). Se você já tinha rodado uma versão anterior, apague a pasta
 > `backend/data` para recriar o banco de demonstração.

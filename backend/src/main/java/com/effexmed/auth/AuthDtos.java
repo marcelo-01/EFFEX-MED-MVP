@@ -86,11 +86,12 @@ public final class AuthDtos {
             Boolean marketingOptIn) {
     }
 
-    public record UserDto(Long id, String name, String email, Role role, String crm, String specialty) {
+    public record UserDto(Long id, String name, String email, Role role, String crm, String specialty,
+            String photoUrl) {
 
         public static UserDto from(User user) {
             return new UserDto(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getCrm(),
-                    user.getSpecialty());
+                    user.getSpecialty(), user.photoUrl());
         }
     }
 

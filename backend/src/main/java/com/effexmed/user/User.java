@@ -42,6 +42,9 @@ public class User {
     @Column(nullable = false)
     private Instant createdAt;
 
+    /** Momento da última troca de foto; nulo quando o usuário não tem foto. Também versiona a URL da imagem. */
+    private Instant photoUpdatedAt;
+
     protected User() {
     }
 
@@ -67,6 +70,32 @@ public class User {
 
     public static String normalizeEmail(String email) {
         return email == null ? null : email.trim().toLowerCase();
+    }
+
+    public void rename(String name) {
+        this.name = name.trim();
+    }
+
+    public void updateProfessionalInfo(String crm, String specialty) {
+        this.crm = crm.trim();
+        this.specialty = specialty == null || specialty.isBlank() ? null : specialty.trim();
+    }
+
+    public void changePassword(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public void photoChanged(Instant updatedAt) {
+        this.photoUpdatedAt = updatedAt;
+    }
+
+    public void photoRemoved() {
+        this.photoUpdatedAt = null;
+    }
+
+    /** URL da foto (com versão para cache) ou nulo. O acesso é restrito a quem tem vínculo com o usuário. */
+    public String photoUrl() {
+        return photoUpdatedAt == null ? null : "/api/users/" + id + "/photo?v=" + photoUpdatedAt.toEpochMilli();
     }
 
     public Long getId() {
@@ -103,5 +132,9 @@ public class User {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getPhotoUpdatedAt() {
+        return photoUpdatedAt;
     }
 }

@@ -201,7 +201,7 @@ export function PatientsPage() {
             {visible.map((patient) => (
               <div key={patient.conversationId} className="patient-row" role="row">
                 <div className="patient-row__person">
-                  <Avatar name={patient.name} size={40} muted={!patient.registered} />
+                  <Avatar name={patient.name} size={40} muted={!patient.registered} photoUrl={patient.photoUrl} />
                   <div className="patient-row__names">
                     <strong>{patient.name}</strong>
                     <span>{patient.email}</span>

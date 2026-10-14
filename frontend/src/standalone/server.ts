@@ -9,6 +9,7 @@
 import { ApiError } from '../api/http';
 import type {
   ChatEvent,
+  Consent,
   Conversation,
   ConversationStatus,
   DayOfWeek,
@@ -16,6 +17,7 @@ import type {
   Message,
   MessageType,
   Patient,
+  Profile,
   Role,
   Settings,
   User,
@@ -53,9 +55,11 @@ interface DbExtension extends Extension {
 /** Aceites do cadastro (LGPD), como a tabela user_consents do backend. */
 interface DbConsent {
   userId: number;
-  type: 'TERMS_OF_USE' | 'PRIVACY_POLICY' | 'HEALTH_DATA' | 'PROFESSIONAL_DECLARATION' | 'MARKETING';
+  type: Consent['type'];
   documentVersion: string;
   grantedAt: string;
+  /** Revogação (LGPD, art. 8º, § 5º); o registro fica como histórico. */
+  revokedAt?: string | null;
 }
 
 interface Db {
@@ -351,7 +355,8 @@ function loadOwned(db: Db, doctorId: number, conversationId: number) {
 
 function toUserDto(user: DbUser): User {
   const { id, name, email, role, crm, specialty } = user;
-  return { id, name, email, role, crm, specialty };
+  // Na versão standalone a foto fica guardada como data URL junto com o usuário.
+  return { id, name, email, role, crm, specialty, photoUrl: user.photoUrl ?? null };
 }
 
 function addMessage(
@@ -433,12 +438,14 @@ function toConversationDto(db: Db, conversation: DbConversation, viewer: DbUser)
         name: patientDisplayName(db, conversation),
         email: conversation.patientEmail,
         detail: conversation.patientEmail,
+        photoUrl: userById(db, conversation.patientId)?.photoUrl ?? null,
       }
     : {
         id: doctor.id,
         name: doctor.name,
         email: doctor.email,
         detail: doctor.specialty ? `${doctor.specialty} · CRM ${doctor.crm}` : `CRM ${doctor.crm}`,
+        photoUrl: doctor.photoUrl ?? null,
       };
   return {
     id: conversation.id,
@@ -468,6 +475,7 @@ function toPatientDto(db: Db, conversation: DbConversation): Patient {
     conversationId: conversation.id,
     name: patientDisplayName(db, conversation),
     email: conversation.patientEmail,
+    photoUrl: userById(db, conversation.patientId)?.photoUrl ?? null,
     registered: conversation.patientId !== null,
     expiresOn: conversation.expiresOn,
     daysRemaining: daysBetween(day, conversation.expiresOn),
@@ -555,6 +563,7 @@ async function register(db: Db, body: Body, role: Role) {
     role,
     crm: role === 'DOCTOR' ? str(body, 'crm') : null,
     specialty: role === 'DOCTOR' ? optional(body, 'specialty') : null,
+    photoUrl: null,
     passwordHash: await hashPassword(String(body.password)),
     createdAt: new Date().toISOString(),
   };
@@ -586,6 +595,88 @@ function recordConsents(db: Db, user: DbUser, marketingOptIn: boolean) {
   for (const type of types) {
     db.consents.push({ userId: user.id, type, documentVersion: DOCUMENTS_VERSION, grantedAt: user.createdAt });
   }
+}
+
+// --- Perfil (mesmas regras do ProfileService do backend) ---
+
+const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+
+function activeConsents(db: Db, userId: number) {
+  return (db.consents ?? []).filter((c) => c.userId === userId && !c.revokedAt);
+}
+
+function toProfile(db: Db, user: DbUser): Profile {
+  const consents = activeConsents(db, user.id);
+  return {
+    ...toUserDto(user),
+    marketingOptIn: consents.some((c) => c.type === 'MARKETING'),
+    consents: consents.map(({ type, documentVersion, grantedAt }) => ({ type, documentVersion, grantedAt })),
+  };
+}
+
+/** Atualiza nome e foto nas telas de quem conversa com o usuário. */
+function notifyContacts(db: Db, user: DbUser) {
+  db.conversations
+    .filter((c) => c.doctorId === user.id || c.patientId === user.id)
+    .forEach(publishConversationUpdated);
+}
+
+function updateProfile(db: Db, user: DbUser, body: Body): Profile {
+  const v = new Validator();
+  v.text(body, 'name', { required: 'Informe o nome.', max: 120 }, { max: 'O nome pode ter no máximo 120 caracteres.' });
+  if (user.role === 'DOCTOR') {
+    v.text(body, 'crm', { required: 'Informe o CRM.', max: 30 }, { max: 'O CRM pode ter no máximo 30 caracteres.' });
+    v.text(body, 'specialty', { max: 80 }, { max: 'A especialidade pode ter no máximo 80 caracteres.' });
+  }
+  v.check();
+  user.name = str(body, 'name');
+  if (user.role === 'DOCTOR') {
+    user.crm = str(body, 'crm');
+    user.specialty = optional(body, 'specialty');
+  }
+  if (typeof body.marketingOptIn === 'boolean') {
+    const now = new Date().toISOString();
+    const marketing = activeConsents(db, user.id).filter((c) => c.type === 'MARKETING');
+    if (body.marketingOptIn && marketing.length === 0) {
+      db.consents.push({ userId: user.id, type: 'MARKETING', documentVersion: DOCUMENTS_VERSION, grantedAt: now });
+    } else if (!body.marketingOptIn) {
+      marketing.forEach((c) => (c.revokedAt = now));
+    }
+  }
+  notifyContacts(db, user);
+  return toProfile(db, user);
+}
+
+async function changePassword(user: DbUser, body: Body) {
+  const v = new Validator();
+  v.text(body, 'currentPassword', { required: 'Informe a senha atual.' }, {});
+  v.text(body, 'newPassword', { required: 'Informe a nova senha.', min: 6, max: 72 }, {
+    min: 'A nova senha deve ter entre 6 e 72 caracteres.',
+    max: 'A nova senha deve ter entre 6 e 72 caracteres.',
+  });
+  v.check();
+  if (user.passwordHash !== (await hashPassword(String(body.currentPassword)))) {
+    throw new ApiError(400, 'A senha atual está incorreta.');
+  }
+  user.passwordHash = await hashPassword(String(body.newPassword));
+  return undefined;
+}
+
+async function updatePhoto(db: Db, user: DbUser, body: unknown): Promise<Profile> {
+  const file = body instanceof FormData ? body.get('file') : null;
+  if (!(file instanceof Blob) || file.size === 0) throw new ApiError(400, 'Selecione uma imagem.');
+  if (file.size > MAX_PHOTO_BYTES) throw new ApiError(400, 'A foto deve ter no máximo 2 MB.');
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+    throw new ApiError(400, 'Envie uma imagem JPG, PNG ou WebP.');
+  }
+  user.photoUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new ApiError(400, 'Não foi possível ler a imagem.'));
+    reader.readAsDataURL(file);
+  });
+  notifyContacts(db, user);
+  return toProfile(db, user);
 }
 
 function authenticated(db: Db, user: DbUser) {
@@ -872,6 +963,16 @@ async function route<T>(method: string, path: string, body: unknown, token: stri
           .map(({ conversationId: _id, ...extension }) => extension);
         mutated = false;
       } else throw new ApiError(404, 'Recurso não encontrado.');
+    } else if (route === 'GET /profile') {
+      result = toProfile(db, user);
+      mutated = false;
+    } else if (route === 'PUT /profile') result = updateProfile(db, user, data);
+    else if (route === 'PUT /profile/password') result = await changePassword(user, data);
+    else if (route === 'PUT /profile/photo') result = await updatePhoto(db, user, body);
+    else if (route === 'DELETE /profile/photo') {
+      user.photoUrl = null;
+      notifyContacts(db, user);
+      result = toProfile(db, user);
     } else if (route === 'GET /conversations') {
       result = listConversations(db, user);
       mutated = false;
@@ -940,7 +1041,17 @@ async function createSeed(): Promise<Db> {
   const day = today();
 
   const user = (name: string, email: string, role: Role, crm: string | null = null, specialty: string | null = null) => {
-    const created: DbUser = { id: nextId(db), name, email, role, crm, specialty, passwordHash, createdAt: at(60, 9, 0).toISOString() };
+    const created: DbUser = {
+      id: nextId(db),
+      name,
+      email,
+      role,
+      crm,
+      specialty,
+      photoUrl: null,
+      passwordHash,
+      createdAt: at(60, 9, 0).toISOString(),
+    };
     db.users.push(created);
     recordConsents(db, created, false);
     return created;

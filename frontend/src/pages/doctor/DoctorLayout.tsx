@@ -37,9 +37,15 @@ function DoctorShell() {
           <RailLink to="/medico/configuracoes" icon={<Settings size={22} />} label="Ajustes" />
         </div>
         <div className="rail__footer">
-          <div className="rail__user" title={`${user?.name}\n${user?.email}`}>
-            <Avatar name={user?.name ?? ''} size={38} />
-          </div>
+          <RailLink
+            to="/medico/perfil"
+            icon={
+              <span className="rail__avatar">
+                <Avatar name={user?.name ?? ''} size={30} photoUrl={user?.photoUrl} />
+              </span>
+            }
+            label="Perfil"
+          />
           <button type="button" className="rail__item" onClick={logout}>
             <LogOut size={20} />
             <span>Sair</span>

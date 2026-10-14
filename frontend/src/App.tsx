@@ -8,11 +8,12 @@ import { LogoMark } from './components/Logo';
 import { ToastProvider } from './components/Toast';
 import { RealtimeProvider } from './realtime/RealtimeContext';
 import { LoginPage } from './pages/LoginPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DoctorLayout } from './pages/doctor/DoctorLayout';
 import { PatientsPage } from './pages/doctor/PatientsPage';
 import { SettingsPage } from './pages/doctor/SettingsPage';
-import { PatientLayout } from './pages/patient/PatientLayout';
+import { PatientChat, PatientLayout } from './pages/patient/PatientLayout';
 
 // A versão standalone roda dentro de outra página (ex.: Claude Artifacts), sem controlar a URL.
 const Router = STANDALONE ? MemoryRouter : BrowserRouter;
@@ -32,10 +33,14 @@ export function App() {
               <Route path="conversas/:id?" element={<ChatScreen basePath="/medico/conversas" />} />
               <Route path="pacientes" element={<PatientsPage />} />
               <Route path="configuracoes" element={<SettingsPage />} />
+              <Route path="perfil" element={<ProfilePage />} />
             </Route>
 
-            <Route path="/paciente" element={<Navigate to="/paciente/conversas" replace />} />
-            <Route path="/paciente/conversas/:id?" element={<RequireRole role="PATIENT"><PatientLayout /></RequireRole>} />
+            <Route path="/paciente" element={<RequireRole role="PATIENT"><PatientLayout /></RequireRole>}>
+              <Route index element={<Navigate to="conversas" replace />} />
+              <Route path="conversas/:id?" element={<PatientChat />} />
+              <Route path="perfil" element={<ProfilePage />} />
+            </Route>
 
             <Route path="*" element={<HomeRedirect />} />
           </Routes>

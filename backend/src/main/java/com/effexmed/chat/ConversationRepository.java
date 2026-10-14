@@ -23,4 +23,8 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
     List<Conversation> findByPatientEmailAndPatientIsNull(String patientEmail);
 
     boolean existsByDoctorIdAndPatientEmail(Long doctorId, String patientEmail);
+
+    boolean existsByDoctorIdAndPatientId(Long doctorId, Long patientId);
+
+    List<Conversation> findByDoctorIdOrPatientId(Long doctorId, Long patientId);
 }

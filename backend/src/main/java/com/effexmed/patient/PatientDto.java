@@ -12,6 +12,7 @@ public record PatientDto(
         Long conversationId,
         String name,
         String email,
+        String photoUrl,
         /** Se o paciente já criou a conta no aplicativo. */
         boolean registered,
         LocalDate expiresOn,

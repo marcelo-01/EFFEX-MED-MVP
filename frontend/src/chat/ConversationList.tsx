@@ -112,7 +112,7 @@ export function ConversationList({ header, title }: ConversationListProps) {
             to={chatPath(conversation.id)}
             className={({ isActive }) => `conversation-item ${isActive ? 'conversation-item--active' : ''}`}
           >
-            <Avatar name={conversation.counterpart.name} size={48} />
+            <Avatar name={conversation.counterpart.name} size={48} photoUrl={conversation.counterpart.photoUrl} />
             <div className="conversation-item__body">
               <div className="conversation-item__row">
                 <span className="conversation-item__name">{conversation.counterpart.name}</span>

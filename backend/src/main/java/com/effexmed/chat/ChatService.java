@@ -221,13 +221,15 @@ public class ChatService {
         if (user.isDoctor()) {
             User patient = conversation.getPatient();
             return new ConversationDto.Participant(patient == null ? null : patient.getId(),
-                    conversation.patientDisplayName(), conversation.getPatientEmail(), conversation.getPatientEmail());
+                    conversation.patientDisplayName(), conversation.getPatientEmail(), conversation.getPatientEmail(),
+                    patient == null ? null : patient.photoUrl());
         }
         User doctor = conversation.getDoctor();
         String detail = doctor.getSpecialty() == null || doctor.getSpecialty().isBlank()
                 ? "CRM " + doctor.getCrm()
                 : doctor.getSpecialty() + " · CRM " + doctor.getCrm();
-        return new ConversationDto.Participant(doctor.getId(), doctor.getName(), doctor.getEmail(), detail);
+        return new ConversationDto.Participant(doctor.getId(), doctor.getName(), doctor.getEmail(), detail,
+                doctor.photoUrl());
     }
 
     private static Instant lastActivity(Conversation conversation) {

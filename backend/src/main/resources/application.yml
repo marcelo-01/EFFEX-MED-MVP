@@ -6,6 +6,11 @@ spring:
     url: ${DATABASE_URL:jdbc:h2:file:./data/effexmed}
     username: ${DATABASE_USERNAME:sa}
     password: ${DATABASE_PASSWORD:}
+  servlet:
+    multipart:
+      # Fotos de perfil (o frontend já reduz a imagem antes de enviar).
+      max-file-size: 2MB
+      max-request-size: 3MB
   jpa:
     open-in-view: false
     hibernate:

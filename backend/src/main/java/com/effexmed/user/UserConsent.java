@@ -43,6 +43,9 @@ public class UserConsent {
     @Column(nullable = false)
     private Instant grantedAt;
 
+    /** Revogação (LGPD, art. 8º, § 5º). O registro é mantido como histórico. */
+    private Instant revokedAt;
+
     protected UserConsent() {
     }
 
@@ -51,6 +54,16 @@ public class UserConsent {
         this.type = type;
         this.documentVersion = CURRENT_DOCUMENTS_VERSION;
         this.grantedAt = grantedAt;
+    }
+
+    public void revoke(Instant revokedAt) {
+        if (this.revokedAt == null) {
+            this.revokedAt = revokedAt;
+        }
+    }
+
+    public boolean isActive() {
+        return revokedAt == null;
     }
 
     public Long getId() {
@@ -71,5 +84,9 @@ public class UserConsent {
 
     public Instant getGrantedAt() {
         return grantedAt;
+    }
+
+    public Instant getRevokedAt() {
+        return revokedAt;
     }
 }

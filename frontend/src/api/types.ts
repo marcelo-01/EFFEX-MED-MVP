@@ -16,6 +16,21 @@ export interface User {
   role: Role;
   crm: string | null;
   specialty: string | null;
+  /** URL da foto (protegida por login) ou data URL na versão standalone. */
+  photoUrl: string | null;
+}
+
+export type ConsentType = 'TERMS_OF_USE' | 'PRIVACY_POLICY' | 'HEALTH_DATA' | 'PROFESSIONAL_DECLARATION' | 'MARKETING';
+
+export interface Consent {
+  type: ConsentType;
+  documentVersion: string;
+  grantedAt: string;
+}
+
+export interface Profile extends User {
+  marketingOptIn: boolean;
+  consents: Consent[];
 }
 
 /** Aceites do cadastro (LGPD). Os obrigatórios variam conforme o perfil. */
@@ -51,6 +66,7 @@ export interface Participant {
   name: string;
   email: string;
   detail: string;
+  photoUrl: string | null;
 }
 
 export interface DoctorAvailability {
@@ -77,6 +93,7 @@ export interface Patient {
   conversationId: number;
   name: string;
   email: string;
+  photoUrl: string | null;
   registered: boolean;
   expiresOn: string;
   daysRemaining: number;

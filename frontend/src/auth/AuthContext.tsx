@@ -11,6 +11,8 @@ interface AuthContextValue {
   registerDoctor: (data: Parameters<typeof authApi.registerDoctor>[0]) => Promise<User>;
   registerPatient: (data: Parameters<typeof authApi.registerPatient>[0]) => Promise<User>;
   logout: () => void;
+  /** Atualiza os dados do usuário logado (ex.: depois de editar o perfil). */
+  updateUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -65,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       registerDoctor: (data) => authApi.registerDoctor(data).then(authenticate),
       registerPatient: (data) => authApi.registerPatient(data).then(authenticate),
       logout,
+      updateUser: (updated) => setUser(updated),
     }),
     [user, token, loading, authenticate, logout],
   );

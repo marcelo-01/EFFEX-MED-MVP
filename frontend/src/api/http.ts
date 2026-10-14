@@ -60,8 +60,9 @@ export async function request<T>(method: Method, path: string, body?: unknown): 
     }
   }
 
+  const isForm = body instanceof FormData;
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (body !== undefined && !isForm) headers['Content-Type'] = 'application/json';
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let response: Response;
@@ -69,7 +70,7 @@ export async function request<T>(method: Method, path: string, body?: unknown): 
     response = await fetch(`/api${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     });
   } catch {
     throw new ApiError(0, 'Não foi possível conectar ao servidor. Verifique sua conexão.');
@@ -95,4 +96,27 @@ export async function request<T>(method: Method, path: string, body?: unknown): 
   }
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+}
+
+const imageCache = new Map<string, Promise<string>>();
+
+/**
+ * Carrega uma imagem protegida (ex.: foto de perfil) com o token de acesso e devolve uma URL local.
+ * Data URLs (modo standalone) são usadas diretamente. As URLs da API são versionadas, então o cache é seguro.
+ */
+export function loadImage(url: string): Promise<string> {
+  if (url.startsWith('data:') || url.startsWith('blob:')) return Promise.resolve(url);
+  let cached = imageCache.get(url);
+  if (!cached) {
+    const token = getToken();
+    cached = fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then((response) => {
+        if (!response.ok) throw new ApiError(response.status, 'Imagem indisponível.');
+        return response.blob();
+      })
+      .then((blob) => URL.createObjectURL(blob));
+    cached.catch(() => imageCache.delete(url));
+    imageCache.set(url, cached);
+  }
+  return cached;
 }
