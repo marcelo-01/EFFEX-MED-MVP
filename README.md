@@ -6,10 +6,10 @@ enviar mensagens (até a data do retorno).
 
 | Visão do médico | Visão do paciente |
 | --- | --- |
-| Cadastro / login | Cadastro / login |
+| Cadastro com aceites da LGPD / login | Cadastro com aceites da LGPD / login |
 | Chat com os pacientes (estilo WhatsApp) | Chat com os médicos que o cadastraram |
 | **Pacientes**: cadastro por e-mail, prazo do chat, extensão de prazo | Pedido de extensão quando o prazo termina |
-| **Ajustes**: horário de notificações, prazo padrão, extensão, mensagem padrão | |
+| **Ajustes**: horário de notificações e mensagem padrão | |
 
 ## Como rodar
 
@@ -78,8 +78,9 @@ Na tela de login há atalhos para entrar com um clique.
 ### Roteiro sugerido para a apresentação
 
 1. Entre como **Dra. Ana** → aba *Conversas*: veja não lidas, prazos e o marcador 🌙 *fora do horário*.
-2. Aba **Ajustes**: altere o horário de notificações, o prazo padrão e a mensagem padrão (com pré-visualização).
-3. Aba **Pacientes**: cadastre um e-mail novo, edite a data de retorno, estenda o prazo do Pedro.
+2. Aba **Ajustes**: altere o horário de notificações e a mensagem padrão (com pré-visualização).
+3. Aba **Pacientes**: cadastre um e-mail novo escolhendo o prazo do chat, edite a data de retorno e estenda o prazo
+   do Pedro.
 4. Em outra janela anônima, entre como **Pedro**: antes da extensão o chat fica bloqueado; depois, liberado.
 5. Entre como **Rafael** e envie uma mensagem: a mensagem padrão chega na hora; a Dra. Ana vê em tempo real
    (com "digitando…" e confirmação de leitura).
@@ -90,12 +91,13 @@ Na tela de login há atalhos para entrar com um clique.
 - **Cadastro de pacientes por e-mail**: o médico informa só o e-mail (nome e data de retorno são opcionais). Se o
   paciente ainda não tem conta, o vínculo fica pendente e é ligado automaticamente quando ele se cadastra com
   aquele e-mail. Vários médicos podem cadastrar o mesmo e-mail.
-- **Prazo da conversa**: cada vínculo tem uma data de retorno (padrão: hoje + *N* dias, configurável). O chat fica
+- **Prazo da conversa**: definido no cadastro do paciente, pela data do retorno (atalhos de 7 a 90 dias; padrão de
+  30 dias). O chat fica
   disponível até o fim desse dia; depois disso **o paciente não consegue enviar mensagens** (o médico continua
   podendo escrever). Status: *Ativo*, *Expira em X dias* (≤ 3 dias), *Prazo encerrado*.
 - **Extensão de prazo**: o médico estende pela quantidade de dias desejada (atalhos de 7/15/30/60 dias ou valor
   livre), com observação opcional (ex.: "pagamento confirmado na recepção") e histórico. Se o prazo já acabou, a
-  contagem parte de hoje. O paciente pode **solicitar** a extensão pelo app (configurável). Não há pagamento na
+  contagem parte de hoje. O paciente pode **solicitar** a extensão pelo app quando o prazo termina. Não há pagamento na
   plataforma neste MVP.
 - **Horário de notificações**: dias da semana + horário (inclusive janelas que passam da meia-noite). Dentro da
   janela o médico recebe alerta (som, toast e notificação do navegador); fora dela a mensagem chega em silêncio e
@@ -103,6 +105,12 @@ Na tela de login há atalhos para entrar com um clique.
 - **Mensagem padrão**: enviada automaticamente (marcada como *Mensagem automática*) quando o **paciente inicia** a
   conversa, ou seja, na primeira mensagem dele. Se o médico iniciou a conversa, ela não é enviada.
 - **Remoção de paciente**: permitida apenas enquanto não houver mensagens trocadas (para não perder histórico).
+- **LGPD no cadastro**: caixas de aceite desmarcadas por padrão para Termos de Uso e Política de Privacidade (com os
+  textos em modal), além de um aceite específico por perfil: o paciente autoriza o tratamento de **dados de saúde** em
+  destaque (art. 11, I) e o médico declara CRM ativo e dever de sigilo. Receber novidades por e-mail é opcional. Os
+  aceites são validados no backend e gravados em `user_consents` com tipo, versão do documento e data (prova do
+  consentimento, art. 8º, § 2º). Os textos são uma **versão preliminar** e devem ser revisados por um advogado antes
+  do lançamento.
 
 ## Arquitetura
 
@@ -117,8 +125,8 @@ EFFEX-MED-MVP/
 | Pacote | Responsabilidade |
 | --- | --- |
 | `auth` | Cadastro de médico/paciente, login e emissão do JWT (HS256 via `spring-security-oauth2-jose`) |
-| `user` | Entidade `User` (papel `DOCTOR` ou `PATIENT`) |
-| `settings` | `DoctorSettings`: janela de notificações, prazo padrão, extensão e mensagem padrão |
+| `user` | Entidade `User` (papel `DOCTOR` ou `PATIENT`) e `UserConsent` (aceites da LGPD) |
+| `settings` | `DoctorSettings`: janela de notificações e mensagem padrão |
 | `patient` | Painel do médico: cadastro de pacientes, edição de prazo, extensões (`/api/doctor/patients`) |
 | `chat` | `Conversation` (vínculo médico ⇄ e-mail do paciente), `Message`, `ConversationExtension` e as regras do chat |
 | `realtime` | Eventos em tempo real (enviados **após o commit** via `@TransactionalEventListener`) e indicador "digitando" |
@@ -161,8 +169,11 @@ Decisões principais:
 cd backend && ./mvnw test
 ```
 
-Cobrem a janela de notificações, as regras de prazo/extensão e o fluxo completo via MockMvc (vínculo por e-mail,
-mensagem padrão, bloqueio após o prazo, extensão, confirmação de leitura e controle de acesso).
+Cobrem a janela de notificações, as regras de prazo/extensão e o fluxo completo via MockMvc (aceites da LGPD,
+vínculo por e-mail, mensagem padrão, bloqueio após o prazo, extensão, confirmação de leitura e controle de acesso).
+
+> O schema é gerado pelo Hibernate (`ddl-auto: update`). Se você já tinha rodado uma versão anterior, apague a pasta
+> `backend/data` para recriar o banco de demonstração.
 
 ## Próximos passos sugeridos
 

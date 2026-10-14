@@ -8,13 +8,15 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import com.effexmed.chat.Conversation;
+
 public final class PatientRequests {
 
     private PatientRequests() {
     }
 
     /**
-     * @param expiresOn data do retorno; se omitida, usa o prazo padrão das configurações.
+     * @param expiresOn data do retorno; se omitida, a conversa dura {@value Conversation#DEFAULT_DURATION_DAYS} dias.
      */
     public record Register(
             @NotBlank(message = "Informe o e-mail do paciente.")

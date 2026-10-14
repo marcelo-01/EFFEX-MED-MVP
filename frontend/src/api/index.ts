@@ -1,12 +1,18 @@
 import { request } from './http';
-import type { AuthResponse, Conversation, Extension, Message, Patient, Settings, User } from './types';
+import type { AuthResponse, Conversation, Extension, Message, Patient, Settings, SignUpConsents, User } from './types';
 
 export const authApi = {
   login: (email: string, password: string) =>
     request<AuthResponse>('POST', '/auth/login', { email, password }),
-  registerDoctor: (data: { name: string; email: string; password: string; crm: string; specialty: string }) =>
+  registerDoctor: (
+    data: { name: string; email: string; password: string; crm: string; specialty: string } & SignUpConsents & {
+      professionalDeclaration: boolean;
+    },
+  ) =>
     request<AuthResponse>('POST', '/auth/register/doctor', data),
-  registerPatient: (data: { name: string; email: string; password: string }) =>
+  registerPatient: (
+    data: { name: string; email: string; password: string } & SignUpConsents & { consentHealthData: boolean },
+  ) =>
     request<AuthResponse>('POST', '/auth/register/patient', data),
   me: () => request<User>('GET', '/auth/me'),
 };

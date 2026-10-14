@@ -1018,6 +1018,143 @@ textarea::placeholder {
   font-size: 14px;
 }
 
+/* Aceites do cadastro (LGPD) */
+
+.consents {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 4px 0 0;
+  padding: 16px 0 0;
+  border: none;
+  border-top: 1px solid var(--border);
+  min-width: 0;
+}
+
+.consents legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.consent {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  column-gap: 10px;
+  row-gap: 4px;
+  align-items: start;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+.consent input {
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--primary-600);
+  cursor: pointer;
+}
+
+.consent label {
+  cursor: pointer;
+}
+
+.consent--highlighted {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--primary-50);
+  border: 1px solid var(--primary-200);
+  color: var(--primary-900);
+}
+
+.consent--error input {
+  outline: 2px solid var(--danger);
+  outline-offset: 1px;
+}
+
+.consent__error {
+  grid-column: 2;
+}
+
+.consent__required {
+  margin-left: 3px;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.consent__tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--surface-3);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.consents__note {
+  display: flex;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.consents__note svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--primary-600);
+}
+
+.link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--primary-700);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link-button:hover {
+  color: var(--primary-900);
+}
+
+.legal-text {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 65ch;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-2);
+}
+
+.legal-text h3 {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--text);
+}
+
+.legal-text ul {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.legal-text__alert {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--warning-bg);
+  color: #78350f;
+  font-weight: 500;
+}
+
 .segmented {
   display: grid;
   grid-template-columns: 1fr 1fr;

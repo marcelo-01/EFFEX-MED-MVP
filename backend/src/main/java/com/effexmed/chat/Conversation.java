@@ -27,6 +27,9 @@ import com.effexmed.user.User;
 @Table(name = "conversations", uniqueConstraints = @UniqueConstraint(columnNames = { "doctor_id", "patient_email" }))
 public class Conversation {
 
+    /** Prazo usado quando o médico cadastra o paciente sem informar a data do retorno. */
+    public static final int DEFAULT_DURATION_DAYS = 30;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

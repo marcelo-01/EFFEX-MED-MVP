@@ -18,6 +18,13 @@ export interface User {
   specialty: string | null;
 }
 
+/** Aceites do cadastro (LGPD). Os obrigatórios variam conforme o perfil. */
+export interface SignUpConsents {
+  acceptTerms: boolean;
+  acceptPrivacyPolicy: boolean;
+  marketingOptIn: boolean;
+}
+
 export interface AuthResponse {
   token: string;
   user: User;
@@ -61,7 +68,6 @@ export interface Conversation {
   status: ConversationStatus;
   canSend: boolean;
   extensionRequested: boolean;
-  extensionRequestAllowed: boolean;
   lastMessage: Message | null;
   unreadCount: number;
   doctorAvailability: DoctorAvailability;
@@ -96,9 +102,6 @@ export interface Settings {
   notificationDays: DayOfWeek[];
   notificationStart: string;
   notificationEnd: string;
-  defaultConversationDays: number;
-  allowExtensionRequests: boolean;
-  defaultExtensionDays: number;
   welcomeMessageEnabled: boolean;
   welcomeMessage: string | null;
 }

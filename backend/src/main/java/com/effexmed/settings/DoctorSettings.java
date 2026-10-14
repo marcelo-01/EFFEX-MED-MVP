@@ -28,8 +28,6 @@ public class DoctorSettings {
 
     public static final LocalTime DEFAULT_START = LocalTime.of(8, 0);
     public static final LocalTime DEFAULT_END = LocalTime.of(18, 0);
-    public static final int DEFAULT_CONVERSATION_DAYS = 30;
-    public static final int DEFAULT_EXTENSION_DAYS = 15;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,18 +48,6 @@ public class DoctorSettings {
     @Column(nullable = false)
     private LocalTime notificationEnd;
 
-    /** Prazo padrão (em dias) da conversa a partir do cadastro do paciente, ou seja, até o retorno. */
-    @Column(nullable = false)
-    private int defaultConversationDays;
-
-    /** Se o paciente pode solicitar extensão do prazo pelo chat depois que ele expira. */
-    @Column(nullable = false)
-    private boolean allowExtensionRequests;
-
-    /** Sugestão de dias ao estender o prazo de uma conversa. */
-    @Column(nullable = false)
-    private int defaultExtensionDays;
-
     @Column(nullable = false)
     private boolean welcomeMessageEnabled;
 
@@ -78,9 +64,6 @@ public class DoctorSettings {
         settings.notificationDays = EnumSet.range(DayOfWeek.MONDAY, DayOfWeek.FRIDAY);
         settings.notificationStart = DEFAULT_START;
         settings.notificationEnd = DEFAULT_END;
-        settings.defaultConversationDays = DEFAULT_CONVERSATION_DAYS;
-        settings.allowExtensionRequests = true;
-        settings.defaultExtensionDays = DEFAULT_EXTENSION_DAYS;
         settings.welcomeMessageEnabled = true;
         settings.welcomeMessage = "Olá! Recebi sua mensagem e responderei assim que possível, dentro do meu horário "
                 + "de atendimento. Em caso de urgência ou emergência, procure o pronto-socorro mais próximo ou ligue 192.";
@@ -111,15 +94,11 @@ public class DoctorSettings {
     }
 
     public void update(Set<DayOfWeek> notificationDays, LocalTime notificationStart, LocalTime notificationEnd,
-            int defaultConversationDays, boolean allowExtensionRequests, int defaultExtensionDays,
             boolean welcomeMessageEnabled, String welcomeMessage) {
         // Nova instância para que o Hibernate detecte a alteração do campo convertido.
         this.notificationDays = notificationDays.isEmpty() ? EnumSet.noneOf(DayOfWeek.class) : EnumSet.copyOf(notificationDays);
         this.notificationStart = notificationStart;
         this.notificationEnd = notificationEnd;
-        this.defaultConversationDays = defaultConversationDays;
-        this.allowExtensionRequests = allowExtensionRequests;
-        this.defaultExtensionDays = defaultExtensionDays;
         this.welcomeMessageEnabled = welcomeMessageEnabled;
         this.welcomeMessage = welcomeMessage == null ? null : welcomeMessage.trim();
     }
@@ -142,18 +121,6 @@ public class DoctorSettings {
 
     public LocalTime getNotificationEnd() {
         return notificationEnd;
-    }
-
-    public int getDefaultConversationDays() {
-        return defaultConversationDays;
-    }
-
-    public boolean isAllowExtensionRequests() {
-        return allowExtensionRequests;
-    }
-
-    public int getDefaultExtensionDays() {
-        return defaultExtensionDays;
     }
 
     public boolean isWelcomeMessageEnabled() {

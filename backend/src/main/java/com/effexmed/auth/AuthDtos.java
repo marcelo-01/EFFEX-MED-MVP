@@ -1,7 +1,9 @@
 package com.effexmed.auth;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import com.effexmed.user.Role;
@@ -36,7 +38,22 @@ public final class AuthDtos {
             String crm,
 
             @Size(max = 80, message = "A especialidade pode ter no máximo 80 caracteres.")
-            String specialty) {
+            String specialty,
+
+            @NotNull(message = "Aceite os Termos de Uso para continuar.")
+            @AssertTrue(message = "Aceite os Termos de Uso para continuar.")
+            Boolean acceptTerms,
+
+            @NotNull(message = "Aceite a Política de Privacidade para continuar.")
+            @AssertTrue(message = "Aceite a Política de Privacidade para continuar.")
+            Boolean acceptPrivacyPolicy,
+
+            @NotNull(message = "Confirme a declaração profissional para continuar.")
+            @AssertTrue(message = "Confirme a declaração profissional para continuar.")
+            Boolean professionalDeclaration,
+
+            /** Opcional: comunicações por e-mail. */
+            Boolean marketingOptIn) {
     }
 
     public record RegisterPatientRequest(
@@ -51,7 +68,22 @@ public final class AuthDtos {
 
             @NotBlank(message = "Informe a senha.")
             @Size(min = 6, max = 72, message = "A senha deve ter entre 6 e 72 caracteres.")
-            String password) {
+            String password,
+
+            @NotNull(message = "Aceite os Termos de Uso para continuar.")
+            @AssertTrue(message = "Aceite os Termos de Uso para continuar.")
+            Boolean acceptTerms,
+
+            @NotNull(message = "Aceite a Política de Privacidade para continuar.")
+            @AssertTrue(message = "Aceite a Política de Privacidade para continuar.")
+            Boolean acceptPrivacyPolicy,
+
+            @NotNull(message = "Autorize o uso dos dados de saúde para conversar com seus médicos.")
+            @AssertTrue(message = "Autorize o uso dos dados de saúde para conversar com seus médicos.")
+            Boolean consentHealthData,
+
+            /** Opcional: comunicações por e-mail. */
+            Boolean marketingOptIn) {
     }
 
     public record UserDto(Long id, String name, String email, Role role, String crm, String specialty) {

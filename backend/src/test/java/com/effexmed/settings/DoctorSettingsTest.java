@@ -23,7 +23,7 @@ class DoctorSettingsTest {
 
     private static DoctorSettings settings(LocalTime start, LocalTime end) {
         DoctorSettings settings = DoctorSettings.defaultsFor(User.doctor("Dra. Teste", "teste@effexmed.com", "x", "1", null, null));
-        settings.update(EnumSet.range(DayOfWeek.MONDAY, DayOfWeek.FRIDAY), start, end, 30, true, 15, true, "Olá!");
+        settings.update(EnumSet.range(DayOfWeek.MONDAY, DayOfWeek.FRIDAY), start, end, true, "Olá!");
         return settings;
     }
 
@@ -69,10 +69,10 @@ class DoctorSettingsTest {
         DoctorSettings settings = settings(LocalTime.of(8, 0), LocalTime.of(18, 0));
         assertThat(settings.shouldSendWelcomeMessage()).isTrue();
 
-        settings.update(settings.getNotificationDays(), LocalTime.of(8, 0), LocalTime.of(18, 0), 30, true, 15, true, "   ");
+        settings.update(settings.getNotificationDays(), LocalTime.of(8, 0), LocalTime.of(18, 0), true, "   ");
         assertThat(settings.shouldSendWelcomeMessage()).isFalse();
 
-        settings.update(settings.getNotificationDays(), LocalTime.of(8, 0), LocalTime.of(18, 0), 30, true, 15, false, "Olá!");
+        settings.update(settings.getNotificationDays(), LocalTime.of(8, 0), LocalTime.of(18, 0), false, "Olá!");
         assertThat(settings.shouldSendWelcomeMessage()).isFalse();
     }
 }

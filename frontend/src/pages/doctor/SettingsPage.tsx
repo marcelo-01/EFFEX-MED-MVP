@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Bell, BellRing, CalendarClock, CalendarPlus, LoaderCircle, MessageSquareText, Moon } from 'lucide-react';
+import { Bell, BellRing, LoaderCircle, MessageSquareText, Moon } from 'lucide-react';
 import { settingsApi } from '../../api';
 import type { ApiError } from '../../api/http';
 import type { DayOfWeek, Settings } from '../../api/types';
@@ -11,10 +11,7 @@ import {
   requestBrowserNotifications,
   showBrowserNotification,
 } from '../../utils/alerts';
-import { addDays, formatClock, formatDays, pluralDays, toLocalDateValue, formatDate, WEEK_DAYS } from '../../utils/format';
-
-const DURATION_OPTIONS = [7, 15, 30, 60, 90];
-const EXTENSION_OPTIONS = [7, 15, 30];
+import { formatClock, formatDays, WEEK_DAYS } from '../../utils/format';
 
 export function SettingsPage() {
   const toast = useToast();
@@ -95,8 +92,6 @@ export function SettingsPage() {
     showBrowserNotification('Effex Med', 'Teste de notificação: tudo certo por aqui!');
   };
 
-  const returnDate = formatDate(toLocalDateValue(addDays(new Date(), form.defaultConversationDays || 0)));
-
   return (
     <div className="page page--narrow">
       <header className="page-header">
@@ -164,77 +159,6 @@ export function SettingsPage() {
           <button type="button" className="btn btn--ghost btn--small" onClick={testNotification}>
             Testar
           </button>
-        </div>
-      </section>
-
-      <section className="card settings-card">
-        <SectionTitle icon={<CalendarClock size={20} />} title="Prazo de duração da conversa" description="O chat fica disponível até o retorno. Depois disso, o paciente não consegue enviar mensagens." />
-        <div className="field">
-          <span className="field__label">Prazo padrão a partir do cadastro do paciente</span>
-          <div className="chip-row">
-            {DURATION_OPTIONS.map((option) => (
-              <button
-                key={option}
-                type="button"
-                className={`chip chip--lg ${form.defaultConversationDays === option ? 'chip--active' : ''}`}
-                onClick={() => set('defaultConversationDays', option)}
-              >
-                {pluralDays(option)}
-              </button>
-            ))}
-            <label className="input-suffix">
-              <input
-                type="number"
-                min={1}
-                max={365}
-                value={form.defaultConversationDays || ''}
-                onChange={(e) => set('defaultConversationDays', Number(e.target.value))}
-                aria-label="Prazo padrão em dias"
-              />
-              <span>dias</span>
-            </label>
-          </div>
-          <span className="field__hint">
-            Um paciente cadastrado hoje poderá enviar mensagens até <b>{returnDate}</b>. Você pode ajustar a data de cada paciente no cadastro.
-          </span>
-        </div>
-      </section>
-
-      <section className="card settings-card">
-        <SectionTitle icon={<CalendarPlus size={20} />} title="Extensão do prazo" description="Estenda a conversa após o retorno — por exemplo, quando o paciente contratar um acompanhamento extra." />
-        <label className="toggle-row">
-          <span>
-            <b>Permitir que o paciente solicite extensão pelo aplicativo</b>
-            <small>Quando o prazo terminar, o paciente verá um botão “Solicitar extensão”.</small>
-          </span>
-          <Toggle checked={form.allowExtensionRequests} onChange={(value) => set('allowExtensionRequests', value)} />
-        </label>
-        <div className="field">
-          <span className="field__label">Extensão sugerida</span>
-          <div className="chip-row">
-            {EXTENSION_OPTIONS.map((option) => (
-              <button
-                key={option}
-                type="button"
-                className={`chip chip--lg ${form.defaultExtensionDays === option ? 'chip--active' : ''}`}
-                onClick={() => set('defaultExtensionDays', option)}
-              >
-                {pluralDays(option)}
-              </button>
-            ))}
-            <label className="input-suffix">
-              <input
-                type="number"
-                min={1}
-                max={365}
-                value={form.defaultExtensionDays || ''}
-                onChange={(e) => set('defaultExtensionDays', Number(e.target.value))}
-                aria-label="Extensão sugerida em dias"
-              />
-              <span>dias</span>
-            </label>
-          </div>
-          <span className="field__hint">Para estender, use o botão “Estender” na aba Pacientes ou no topo do chat.</span>
         </div>
       </section>
 

@@ -268,12 +268,10 @@ export function ChatWindow({ conversation, backPath }: ChatWindowProps) {
               <span>
                 {conversation.extensionRequested
                   ? 'Sua solicitação de extensão foi enviada. Aguarde o retorno do consultório.'
-                  : conversation.extensionRequestAllowed
-                    ? 'Para continuar conversando, solicite a extensão do prazo ao seu médico.'
-                    : 'Para continuar conversando, entre em contato com o consultório.'}
+                  : 'Para continuar conversando, solicite a extensão do prazo ao seu médico.'}
               </span>
             </div>
-            {conversation.extensionRequestAllowed && !conversation.extensionRequested && (
+            {!conversation.extensionRequested && (
               <button type="button" className="btn btn--primary" onClick={requestExtension} disabled={requesting}>
                 <CalendarPlus size={18} />
                 Solicitar extensão

@@ -127,9 +127,6 @@ public class ChatService {
         if (!conversation.isExpired(now.toLocalDate())) {
             throw ApiException.conflict("A conversa ainda está dentro do prazo.");
         }
-        if (!settings.isAllowExtensionRequests()) {
-            throw ApiException.forbidden("Este médico não aceita solicitações de extensão pelo aplicativo.");
-        }
         if (conversation.getExtensionRequestedAt() == null) {
             conversation.requestExtension(now.toInstant());
             Message message = messages.save(Message.system(conversation,
@@ -211,7 +208,6 @@ public class ChatService {
                             ConversationStatus.of(conversation, today),
                             user.isDoctor() ? conversation.isPatientRegistered() : !expired,
                             conversation.getExtensionRequestedAt() != null,
-                            settings.isAllowExtensionRequests(),
                             last == null ? null : MessageDto.from(last),
                             unread.getOrDefault(conversation.getId(), 0L),
                             new ConversationDto.DoctorAvailability(new TreeSet<>(settings.getNotificationDays()),

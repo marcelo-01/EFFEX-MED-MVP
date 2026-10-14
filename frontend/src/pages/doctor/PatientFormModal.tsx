@@ -4,20 +4,25 @@ import { patientsApi } from '../../api';
 import type { ApiError } from '../../api/http';
 import type { Patient } from '../../api/types';
 import { Modal } from '../../components/Modal';
-import { addDays, formatDate, toLocalDateValue } from '../../utils/format';
+import { addDays, daysFromToday, formatDate, pluralDays, remainingLabel, toLocalDateValue } from '../../utils/format';
+
+/** Atalhos para a duração do chat a partir de hoje (até o retorno). */
+const DURATION_OPTIONS = [7, 15, 30, 60, 90];
+const DEFAULT_DURATION = 30;
 
 interface PatientFormModalProps {
   /** Paciente a editar; ausente para um novo cadastro. */
   patient?: Patient;
-  defaultConversationDays: number;
   onClose: () => void;
   onSaved: (patient: Patient, created: boolean) => void;
 }
 
-export function PatientFormModal({ patient, defaultConversationDays, onClose, onSaved }: PatientFormModalProps) {
+const dateIn = (days: number) => toLocalDateValue(addDays(new Date(), days));
+
+export function PatientFormModal({ patient, onClose, onSaved }: PatientFormModalProps) {
   const editing = Boolean(patient);
   const today = toLocalDateValue(new Date());
-  const defaultDate = toLocalDateValue(addDays(new Date(), defaultConversationDays));
+  const defaultDate = dateIn(DEFAULT_DURATION);
   const [email, setEmail] = useState(patient?.email ?? '');
   const [name, setName] = useState(patient && patient.name !== patient.email ? patient.name : '');
   const [expiresOn, setExpiresOn] = useState(patient?.expiresOn ?? defaultDate);
@@ -89,6 +94,23 @@ export function PatientFormModal({ patient, defaultConversationDays, onClose, on
             {errors.name && <span className="field__error">{errors.name}</span>}
           </label>
         )}
+        {!editing && (
+          <div className="field">
+            <span className="field__label">Prazo do chat (até o retorno)</span>
+            <div className="chip-row">
+              {DURATION_OPTIONS.map((days) => (
+                <button
+                  key={days}
+                  type="button"
+                  className={`chip chip--lg ${expiresOn === dateIn(days) ? 'chip--active' : ''}`}
+                  onClick={() => setExpiresOn(dateIn(days))}
+                >
+                  {pluralDays(days)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <label className={`field ${errors.expiresOn ? 'field--error' : ''}`}>
           <span className="field__label">Data do retorno (fim do chat)</span>
           <input
@@ -100,8 +122,10 @@ export function PatientFormModal({ patient, defaultConversationDays, onClose, on
             required
           />
           <span className="field__hint">
-            O paciente pode enviar mensagens até {expiresOn ? formatDate(expiresOn) : '—'}.
-            {!editing && ` Padrão das configurações: ${defaultConversationDays} dias.`}
+            {expiresOn
+              ? `O paciente pode enviar mensagens até ${formatDate(expiresOn)} (${remainingLabel(daysFromToday(expiresOn)).toLowerCase()}).`
+              : 'Informe a data do retorno.'}
+            {editing && ' Para dar mais prazo depois do retorno, use “Estender”.'}
           </span>
         </label>
         {!editing && (

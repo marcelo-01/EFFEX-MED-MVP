@@ -24,6 +24,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import com.effexmed.user.ConsentType;
+import com.effexmed.user.UserConsent;
+import com.effexmed.user.UserConsentRepository;
+import com.effexmed.user.UserRepository;
 import com.jayway.jsonpath.JsonPath;
 
 @SpringBootTest
@@ -39,6 +43,38 @@ class ChatFlowIntegrationTest {
 
     @Autowired
     private Clock clock;
+
+    @Autowired
+    private UserConsentRepository consents;
+
+    @Autowired
+    private UserRepository users;
+
+    @Test
+    void signUpRequiresTheLgpdConsentsAndRecordsThem() throws Exception {
+        String email = uniqueEmail("paciente");
+        perform(post("/api/auth/register/patient"), null, """
+                {"name":"Paciente","email":"%s","password":"segredo123","acceptTerms":true,
+                 "acceptPrivacyPolicy":true,"consentHealthData":false}""".formatted(email))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.consentHealthData").exists());
+        perform(post("/api/auth/register/doctor"), null, """
+                {"name":"Dr. Teste","email":"%s","password":"segredo123","crm":"1-SP"}""".formatted(uniqueEmail("medico")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.acceptTerms").exists())
+                .andExpect(jsonPath("$.errors.acceptPrivacyPolicy").exists())
+                .andExpect(jsonPath("$.errors.professionalDeclaration").exists());
+
+        perform(post("/api/auth/register/patient"), null, """
+                {"name":"Paciente","email":"%s","password":"segredo123","acceptTerms":true,
+                 "acceptPrivacyPolicy":true,"consentHealthData":true,"marketingOptIn":true}""".formatted(email))
+                .andExpect(status().isCreated());
+        Long userId = users.findByEmail(email).orElseThrow().getId();
+        assertThat(consents.findByUserId(userId))
+                .extracting(UserConsent::getType)
+                .containsExactlyInAnyOrder(ConsentType.TERMS_OF_USE, ConsentType.PRIVACY_POLICY,
+                        ConsentType.HEALTH_DATA, ConsentType.MARKETING);
+    }
 
     @Test
     void conversationAppearsWhenThePatientSignsUpWithTheRegisteredEmail() throws Exception {
@@ -145,8 +181,7 @@ class ChatFlowIntegrationTest {
         String end = now.plusHours(2).toLocalTime().withSecond(0).withNano(0).toString();
         perform(put("/api/doctor/settings"), doctor, """
                 {"notificationDays":["MONDAY","TUESDAY","WEDNESDAY","THURSDAY","FRIDAY","SATURDAY","SUNDAY"],
-                 "notificationStart":"%s","notificationEnd":"%s","defaultConversationDays":30,
-                 "allowExtensionRequests":true,"defaultExtensionDays":15,"welcomeMessageEnabled":false,
+                 "notificationStart":"%s","notificationEnd":"%s","welcomeMessageEnabled":false,
                  "welcomeMessage":null}""".formatted(start, end))
                 .andExpect(status().isOk());
 
@@ -222,13 +257,15 @@ class ChatFlowIntegrationTest {
 
     private String registerDoctor() throws Exception {
         return token(perform(post("/api/auth/register/doctor"), null, """
-                {"name":"Dra. Teste","email":"%s","password":"segredo123","crm":"12345-SP","specialty":"Clínica"}"""
+                {"name":"Dra. Teste","email":"%s","password":"segredo123","crm":"12345-SP","specialty":"Clínica",
+                 "acceptTerms":true,"acceptPrivacyPolicy":true,"professionalDeclaration":true}"""
                 .formatted(uniqueEmail("medico"))));
     }
 
     private String registerPatient(String email) throws Exception {
         return token(perform(post("/api/auth/register/patient"), null, """
-                {"name":"Paciente Teste","email":"%s","password":"segredo123"}""".formatted(email)));
+                {"name":"Paciente Teste","email":"%s","password":"segredo123",
+                 "acceptTerms":true,"acceptPrivacyPolicy":true,"consentHealthData":true}""".formatted(email)));
     }
 
     private String token(ResultActions result) throws Exception {

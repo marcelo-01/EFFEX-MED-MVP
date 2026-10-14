@@ -37,7 +37,6 @@ public class SettingsService {
     public SettingsDto update(Long doctorId, SettingsDto request) {
         DoctorSettings settings = forDoctor(doctorId);
         settings.update(request.notificationDays(), request.notificationStart(), request.notificationEnd(),
-                request.defaultConversationDays(), request.allowExtensionRequests(), request.defaultExtensionDays(),
                 request.welcomeMessageEnabled(), request.welcomeMessage());
         return SettingsDto.from(settings);
     }

@@ -17,8 +17,6 @@ public record ConversationDto(
         /** Se o usuário atual pode enviar mensagens agora. */
         boolean canSend,
         boolean extensionRequested,
-        /** Se o paciente pode solicitar extensão (configuração do médico). */
-        boolean extensionRequestAllowed,
         MessageDto lastMessage,
         long unreadCount,
         DoctorAvailability doctorAvailability) {

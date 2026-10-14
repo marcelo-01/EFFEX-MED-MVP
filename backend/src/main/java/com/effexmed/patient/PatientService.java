@@ -22,7 +22,6 @@ import com.effexmed.chat.CountByConversation;
 import com.effexmed.chat.MessageRepository;
 import com.effexmed.chat.MessageType;
 import com.effexmed.common.ApiException;
-import com.effexmed.settings.SettingsService;
 import com.effexmed.user.User;
 import com.effexmed.user.UserRepository;
 
@@ -37,18 +36,15 @@ public class PatientService {
     private final ConversationExtensionRepository extensions;
     private final MessageRepository messages;
     private final UserRepository users;
-    private final SettingsService settingsService;
     private final ChatService chatService;
     private final Clock clock;
 
     public PatientService(ConversationRepository conversations, ConversationExtensionRepository extensions,
-            MessageRepository messages, UserRepository users, SettingsService settingsService,
-            ChatService chatService, Clock clock) {
+            MessageRepository messages, UserRepository users, ChatService chatService, Clock clock) {
         this.conversations = conversations;
         this.extensions = extensions;
         this.messages = messages;
         this.users = users;
-        this.settingsService = settingsService;
         this.chatService = chatService;
         this.clock = clock;
     }
@@ -79,7 +75,7 @@ public class PatientService {
         LocalDate today = LocalDate.now(clock);
         LocalDate expiresOn = request.expiresOn() != null
                 ? request.expiresOn()
-                : today.plusDays(settingsService.forDoctor(doctorId).getDefaultConversationDays());
+                : today.plusDays(Conversation.DEFAULT_DURATION_DAYS);
         requireNotInPast(expiresOn, today);
 
         Conversation conversation = new Conversation(doctor, email, request.name(), expiresOn, clock.instant());

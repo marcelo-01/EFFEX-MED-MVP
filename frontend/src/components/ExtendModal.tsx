@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CalendarPlus, History } from 'lucide-react';
-import { patientsApi, settingsApi } from '../api';
+import { patientsApi } from '../api';
 import type { ApiError } from '../api/http';
 import type { ConversationStatus, Extension, Patient } from '../api/types';
 import { addDays, formatDate, formatDateTime, parseLocalDate, pluralDays, toLocalDateValue } from '../utils/format';
@@ -8,6 +8,7 @@ import { Modal } from './Modal';
 import { useToast } from './Toast';
 
 const QUICK_OPTIONS = [7, 15, 30, 60];
+const DEFAULT_DAYS = 15;
 
 interface ExtendModalProps {
   conversationId: number;
@@ -24,16 +25,12 @@ interface ExtendModalProps {
  */
 export function ExtendModal({ conversationId, patientName, expiresOn, status, onClose, onExtended }: ExtendModalProps) {
   const toast = useToast();
-  const [days, setDays] = useState<number | ''>('');
+  const [days, setDays] = useState<number | ''>(DEFAULT_DAYS);
   const [note, setNote] = useState('');
   const [history, setHistory] = useState<Extension[] | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    settingsApi
-      .get()
-      .then((settings) => setDays((current) => (current === '' ? settings.defaultExtensionDays : current)))
-      .catch(() => setDays((current) => (current === '' ? 15 : current)));
     patientsApi
       .extensions(conversationId)
       .then(setHistory)

@@ -73,6 +73,11 @@ export function addDays(date: Date, days: number) {
   return copy;
 }
 
+/** Dias entre hoje e uma data local "2026-11-01" (negativo se já passou). */
+export function daysFromToday(value: string) {
+  return daysBetween(new Date(), parseLocalDate(value));
+}
+
 /** "2026-11-01" → 01/11/2026 */
 export function formatDate(value: string) {
   return shortDateFormat.format(parseLocalDate(value));

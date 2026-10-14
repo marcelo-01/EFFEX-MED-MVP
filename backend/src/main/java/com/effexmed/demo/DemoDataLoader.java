@@ -26,7 +26,10 @@ import com.effexmed.chat.MessageRepository;
 import com.effexmed.config.AppProperties;
 import com.effexmed.settings.DoctorSettings;
 import com.effexmed.settings.DoctorSettingsRepository;
+import com.effexmed.user.ConsentType;
 import com.effexmed.user.User;
+import com.effexmed.user.UserConsent;
+import com.effexmed.user.UserConsentRepository;
 import com.effexmed.user.UserRepository;
 
 /**
@@ -44,6 +47,7 @@ public class DemoDataLoader implements ApplicationRunner {
 
     private final AppProperties properties;
     private final UserRepository users;
+    private final UserConsentRepository consents;
     private final DoctorSettingsRepository settings;
     private final ConversationRepository conversations;
     private final ConversationExtensionRepository extensions;
@@ -53,11 +57,13 @@ public class DemoDataLoader implements ApplicationRunner {
 
     private ZonedDateTime now;
 
-    public DemoDataLoader(AppProperties properties, UserRepository users, DoctorSettingsRepository settings,
-            ConversationRepository conversations, ConversationExtensionRepository extensions,
-            MessageRepository messages, PasswordEncoder passwordEncoder, Clock clock) {
+    public DemoDataLoader(AppProperties properties, UserRepository users, UserConsentRepository consents,
+            DoctorSettingsRepository settings, ConversationRepository conversations,
+            ConversationExtensionRepository extensions, MessageRepository messages, PasswordEncoder passwordEncoder,
+            Clock clock) {
         this.properties = properties;
         this.users = users;
+        this.consents = consents;
         this.settings = settings;
         this.conversations = conversations;
         this.extensions = extensions;
@@ -81,7 +87,7 @@ public class DemoDataLoader implements ApplicationRunner {
                 "Cardiologia", daysAgo(90, 9, 0)));
         DoctorSettings anaSettings = DoctorSettings.defaultsFor(ana);
         anaSettings.update(EnumSet.range(DayOfWeek.MONDAY, DayOfWeek.FRIDAY), LocalTime.of(8, 0), LocalTime.of(18, 0),
-                30, true, 15, true,
+                true,
                 "Olá! Aqui é a Dra. Ana Souza. Recebi sua mensagem e vou responder assim que possível, de segunda "
                         + "a sexta, das 8h às 18h. Em caso de urgência, procure o pronto-socorro mais próximo ou ligue 192.");
         settings.save(anaSettings);
@@ -90,7 +96,7 @@ public class DemoDataLoader implements ApplicationRunner {
                 "Clínica Geral", daysAgo(90, 9, 0)));
         DoctorSettings carlosSettings = DoctorSettings.defaultsFor(carlos);
         carlosSettings.update(EnumSet.range(DayOfWeek.MONDAY, DayOfWeek.SATURDAY), LocalTime.of(7, 0),
-                LocalTime.of(19, 0), 15, true, 7, true,
+                LocalTime.of(19, 0), true,
                 "Olá, aqui é o Dr. Carlos Mendes. Obrigado pelo contato! Respondo as mensagens de segunda a sábado, "
                         + "das 7h às 19h.");
         settings.save(carlosSettings);
@@ -100,6 +106,14 @@ public class DemoDataLoader implements ApplicationRunner {
         User maria = users.save(User.patient("Maria Oliveira", "maria@email.com", password, daysAgo(60, 10, 0)));
         User pedro = users.save(User.patient("Pedro Santos", "pedro@email.com", password, daysAgo(60, 10, 0)));
         User rafael = users.save(User.patient("Rafael Costa", "rafael@email.com", password, daysAgo(5, 10, 0)));
+
+        // Aceites do cadastro (Termos, Privacidade e o consentimento específico de cada perfil).
+        for (User user : users.findAll()) {
+            ConsentType profileConsent = user.isDoctor() ? ConsentType.PROFESSIONAL_DECLARATION : ConsentType.HEALTH_DATA;
+            for (ConsentType type : new ConsentType[] { ConsentType.TERMS_OF_USE, ConsentType.PRIVACY_POLICY, profileConsent }) {
+                consents.save(new UserConsent(user, type, user.getCreatedAt()));
+            }
+        }
 
         // Dra. Ana x João: conversa ativa, com mensagem fora do horário e mensagens não lidas.
         Conversation anaJoao = conversation(ana, joao, today.plusDays(18), 9);

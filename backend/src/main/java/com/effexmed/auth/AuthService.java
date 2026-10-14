@@ -1,6 +1,8 @@
 package com.effexmed.auth;
 
 import java.time.Clock;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,7 +20,10 @@ import com.effexmed.chat.ConversationRepository;
 import com.effexmed.common.ApiException;
 import com.effexmed.settings.DoctorSettings;
 import com.effexmed.settings.DoctorSettingsRepository;
+import com.effexmed.user.ConsentType;
 import com.effexmed.user.User;
+import com.effexmed.user.UserConsent;
+import com.effexmed.user.UserConsentRepository;
 import com.effexmed.user.UserRepository;
 
 @Service
@@ -26,6 +31,7 @@ import com.effexmed.user.UserRepository;
 public class AuthService {
 
     private final UserRepository users;
+    private final UserConsentRepository consents;
     private final DoctorSettingsRepository settings;
     private final ConversationRepository conversations;
     private final ChatService chatService;
@@ -33,9 +39,11 @@ public class AuthService {
     private final TokenService tokenService;
     private final Clock clock;
 
-    public AuthService(UserRepository users, DoctorSettingsRepository settings, ConversationRepository conversations,
-            ChatService chatService, PasswordEncoder passwordEncoder, TokenService tokenService, Clock clock) {
+    public AuthService(UserRepository users, UserConsentRepository consents, DoctorSettingsRepository settings,
+            ConversationRepository conversations, ChatService chatService, PasswordEncoder passwordEncoder,
+            TokenService tokenService, Clock clock) {
         this.users = users;
+        this.consents = consents;
         this.settings = settings;
         this.conversations = conversations;
         this.chatService = chatService;
@@ -50,6 +58,8 @@ public class AuthService {
                 passwordEncoder.encode(request.password()), request.crm().trim(), trimToNull(request.specialty()),
                 clock.instant()));
         settings.save(DoctorSettings.defaultsFor(doctor));
+        recordConsents(doctor, Boolean.TRUE.equals(request.marketingOptIn()), ConsentType.TERMS_OF_USE, ConsentType.PRIVACY_POLICY,
+                ConsentType.PROFESSIONAL_DECLARATION);
         return authenticated(doctor);
     }
 
@@ -60,6 +70,8 @@ public class AuthService {
         requireEmailAvailable(request.email());
         User patient = users.save(User.patient(request.name().trim(), request.email(),
                 passwordEncoder.encode(request.password()), clock.instant()));
+        recordConsents(patient, Boolean.TRUE.equals(request.marketingOptIn()), ConsentType.TERMS_OF_USE, ConsentType.PRIVACY_POLICY,
+                ConsentType.HEALTH_DATA);
         List<Conversation> pending = conversations.findByPatientEmailAndPatientIsNull(patient.getEmail());
         for (Conversation conversation : pending) {
             conversation.linkPatient(patient);
@@ -85,6 +97,19 @@ public class AuthService {
                 .filter(user -> user.getEmail().equals(tokenEmail))
                 .map(UserDto::from)
                 .orElseThrow(() -> ApiException.unauthorized("Sessão expirada. Faça login novamente."));
+    }
+
+    /** Guarda os aceites obrigatórios (já validados no DTO) e o opcional de marketing, se marcado. */
+    private void recordConsents(User user, boolean marketingOptIn, ConsentType... required) {
+        Instant now = clock.instant();
+        List<UserConsent> granted = new ArrayList<>();
+        for (ConsentType type : required) {
+            granted.add(new UserConsent(user, type, now));
+        }
+        if (marketingOptIn) {
+            granted.add(new UserConsent(user, ConsentType.MARKETING, now));
+        }
+        consents.saveAll(granted);
     }
 
     private AuthResponse authenticated(User user) {

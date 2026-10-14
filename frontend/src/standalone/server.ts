@@ -50,6 +50,14 @@ interface DbExtension extends Extension {
   conversationId: number;
 }
 
+/** Aceites do cadastro (LGPD), como a tabela user_consents do backend. */
+interface DbConsent {
+  userId: number;
+  type: 'TERMS_OF_USE' | 'PRIVACY_POLICY' | 'HEALTH_DATA' | 'PROFESSIONAL_DECLARATION' | 'MARKETING';
+  documentVersion: string;
+  grantedAt: string;
+}
+
 interface Db {
   version: 1;
   /** Incrementa a cada gravação; a aba usa sempre a cópia mais recente (storage ou memória). */
@@ -60,6 +68,7 @@ interface Db {
   conversations: DbConversation[];
   messages: Message[];
   extensions: DbExtension[];
+  consents: DbConsent[];
   sessions: Record<string, number>;
 }
 
@@ -67,6 +76,9 @@ const STORAGE_KEY = 'effexmed.demo.v1';
 const CHANNEL_NAME = 'effexmed.demo';
 export const DEMO_PASSWORD = 'demo123';
 const EXPIRING_SOON_DAYS = 3;
+/** Prazo usado quando o médico cadastra o paciente sem informar a data do retorno. */
+const DEFAULT_DURATION_DAYS = 30;
+const DOCUMENTS_VERSION = '1.0';
 const MAX_MESSAGE = 2000;
 const WEEK: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 const WEEKDAYS: DayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
@@ -436,7 +448,6 @@ function toConversationDto(db: Db, conversation: DbConversation, viewer: DbUser)
     status: statusOf(conversation, day),
     canSend: isDoctor ? conversation.patientId !== null : !isExpired(conversation, day),
     extensionRequested: conversation.extensionRequestedAt !== null,
-    extensionRequestAllowed: settings.allowExtensionRequests,
     lastMessage: lastMessage(db, conversation.id),
     unreadCount: unreadCount(db, conversation.id, viewer.id),
     doctorAvailability: {
@@ -524,6 +535,14 @@ async function register(db: Db, body: Body, role: Role) {
     v.text(body, 'crm', { required: 'Informe o CRM.', max: 30 }, { max: 'O CRM pode ter no máximo 30 caracteres.' });
     v.text(body, 'specialty', { max: 80 }, { max: 'A especialidade pode ter no máximo 80 caracteres.' });
   }
+  if (body.acceptTerms !== true) v.fail('acceptTerms', 'Aceite os Termos de Uso para continuar.');
+  if (body.acceptPrivacyPolicy !== true) v.fail('acceptPrivacyPolicy', 'Aceite a Política de Privacidade para continuar.');
+  if (role === 'DOCTOR' && body.professionalDeclaration !== true) {
+    v.fail('professionalDeclaration', 'Confirme a declaração profissional para continuar.');
+  }
+  if (role === 'PATIENT' && body.consentHealthData !== true) {
+    v.fail('consentHealthData', 'Autorize o uso dos dados de saúde para conversar com seus médicos.');
+  }
   v.check();
 
   const email = normalizeEmail(str(body, 'email'));
@@ -540,6 +559,7 @@ async function register(db: Db, body: Body, role: Role) {
     createdAt: new Date().toISOString(),
   };
   db.users.push(user);
+  recordConsents(db, user, body.marketingOptIn === true);
 
   if (role === 'DOCTOR') {
     db.settings.push(defaultSettings(user.id));
@@ -553,6 +573,19 @@ async function register(db: Db, body: Body, role: Role) {
     }
   }
   return authenticated(db, user);
+}
+
+function recordConsents(db: Db, user: DbUser, marketingOptIn: boolean) {
+  const types: DbConsent['type'][] = [
+    'TERMS_OF_USE',
+    'PRIVACY_POLICY',
+    user.role === 'DOCTOR' ? 'PROFESSIONAL_DECLARATION' : 'HEALTH_DATA',
+  ];
+  if (marketingOptIn) types.push('MARKETING');
+  db.consents ??= [];
+  for (const type of types) {
+    db.consents.push({ userId: user.id, type, documentVersion: DOCUMENTS_VERSION, grantedAt: user.createdAt });
+  }
 }
 
 function authenticated(db: Db, user: DbUser) {
@@ -582,8 +615,6 @@ function updateSettings(db: Db, doctorId: number, body: Body): Settings {
   const time = /^\d{2}:\d{2}/;
   if (!time.test(str(body, 'notificationStart'))) v.fail('notificationStart', 'Informe o horário inicial das notificações.');
   if (!time.test(str(body, 'notificationEnd'))) v.fail('notificationEnd', 'Informe o horário final das notificações.');
-  v.range(body, 'defaultConversationDays', 1, 365, 'O prazo da conversa deve ser de pelo menos 1 dia.', 'O prazo da conversa pode ser de no máximo 365 dias.');
-  v.range(body, 'defaultExtensionDays', 1, 365, 'A extensão padrão deve ser de pelo menos 1 dia.', 'A extensão padrão pode ser de no máximo 365 dias.');
   v.text(body, 'welcomeMessage', { max: 1000 }, { max: 'A mensagem padrão pode ter no máximo 1000 caracteres.' });
   v.check();
 
@@ -592,9 +623,6 @@ function updateSettings(db: Db, doctorId: number, body: Body): Settings {
     notificationDays: DAY_ORDER.filter((d) => days.includes(d)),
     notificationStart: str(body, 'notificationStart').slice(0, 5),
     notificationEnd: str(body, 'notificationEnd').slice(0, 5),
-    defaultConversationDays: Number(body.defaultConversationDays),
-    allowExtensionRequests: Boolean(body.allowExtensionRequests),
-    defaultExtensionDays: Number(body.defaultExtensionDays),
     welcomeMessageEnabled: Boolean(body.welcomeMessageEnabled),
     welcomeMessage: optional(body, 'welcomeMessage'),
   });
@@ -626,7 +654,7 @@ function registerPatient(db: Db, doctor: DbUser, body: Body): Patient {
 
   const expiresOn = isValidDate(body.expiresOn)
     ? body.expiresOn
-    : plusDays(today(), settingsFor(db, doctor.id).defaultConversationDays);
+    : plusDays(today(), DEFAULT_DURATION_DAYS);
   requireNotInPast(expiresOn);
 
   const conversation: DbConversation = {
@@ -782,9 +810,6 @@ function requestExtension(db: Db, user: DbUser, conversationId: number): Convers
   const conversation = loadForParticipant(db, user, conversationId);
   const settings = settingsFor(db, conversation.doctorId);
   if (!isExpired(conversation, today())) throw new ApiError(409, 'A conversa ainda está dentro do prazo.');
-  if (!settings.allowExtensionRequests) {
-    throw new ApiError(403, 'Este médico não aceita solicitações de extensão pelo aplicativo.');
-  }
   if (conversation.extensionRequestedAt === null) {
     const now = new Date();
     conversation.extensionRequestedAt = now.toISOString();
@@ -878,9 +903,6 @@ function defaultSettings(doctorId: number): DbSettings {
     notificationDays: [...WEEKDAYS],
     notificationStart: '08:00',
     notificationEnd: '18:00',
-    defaultConversationDays: 30,
-    allowExtensionRequests: true,
-    defaultExtensionDays: 15,
     welcomeMessageEnabled: true,
     welcomeMessage:
       'Olá! Recebi sua mensagem e responderei assim que possível, dentro do meu horário de atendimento. Em caso de urgência ou emergência, procure o pronto-socorro mais próximo ou ligue 192.',
@@ -897,6 +919,7 @@ async function createSeed(): Promise<Db> {
     conversations: [],
     messages: [],
     extensions: [],
+    consents: [],
     sessions: {},
   };
   const now = new Date();
@@ -919,6 +942,7 @@ async function createSeed(): Promise<Db> {
   const user = (name: string, email: string, role: Role, crm: string | null = null, specialty: string | null = null) => {
     const created: DbUser = { id: nextId(db), name, email, role, crm, specialty, passwordHash, createdAt: at(60, 9, 0).toISOString() };
     db.users.push(created);
+    recordConsents(db, created, false);
     return created;
   };
 
@@ -934,8 +958,6 @@ async function createSeed(): Promise<Db> {
     notificationDays: [...WEEKDAYS, 'SATURDAY'],
     notificationStart: '07:00',
     notificationEnd: '19:00',
-    defaultConversationDays: 15,
-    defaultExtensionDays: 7,
     welcomeMessage:
       'Olá, aqui é o Dr. Carlos Mendes. Obrigado pelo contato! Respondo as mensagens de segunda a sábado, das 7h às 19h.',
   };

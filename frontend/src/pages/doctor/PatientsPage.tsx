@@ -14,7 +14,7 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
-import { patientsApi, settingsApi } from '../../api';
+import { patientsApi } from '../../api';
 import type { ApiError } from '../../api/http';
 import type { Patient } from '../../api/types';
 import { Avatar } from '../../components/Avatar';
@@ -59,7 +59,6 @@ export function PatientsPage() {
   const navigate = useNavigate();
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
-  const [defaultDays, setDefaultDays] = useState(30);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [creating, setCreating] = useState(false);
@@ -79,10 +78,6 @@ export function PatientsPage() {
 
   useEffect(() => {
     void load();
-    settingsApi
-      .get()
-      .then((settings) => setDefaultDays(settings.defaultConversationDays))
-      .catch(() => undefined);
   }, [load]);
 
   // Mantém a tabela atualizada com novas mensagens, cadastros de pacientes e pedidos de extensão.
@@ -267,15 +262,10 @@ export function PatientsPage() {
       </section>
 
       {creating && (
-        <PatientFormModal defaultConversationDays={defaultDays} onClose={() => setCreating(false)} onSaved={upsert} />
+        <PatientFormModal onClose={() => setCreating(false)} onSaved={upsert} />
       )}
       {editing && (
-        <PatientFormModal
-          patient={editing}
-          defaultConversationDays={defaultDays}
-          onClose={() => setEditing(null)}
-          onSaved={upsert}
-        />
+        <PatientFormModal patient={editing} onClose={() => setEditing(null)} onSaved={upsert} />
       )}
       {extending && (
         <ExtendModal
